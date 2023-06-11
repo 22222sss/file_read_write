@@ -1,0 +1,215 @@
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <cmath>
+
+using namespace std;
+
+// 判断一个字符串是否全部由数字构成
+bool isNumberString(const string& str)
+{
+    for (char c : str)
+    {
+        if (!isdigit(c))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 打开文件及报错处理
+bool openFile(const string& filename, ifstream& inputFile)
+{
+    inputFile.open(filename);
+    if (!inputFile.is_open())
+    {
+        cout << "无法打开文件" << endl;
+        return false;
+    }
+    return true;
+}
+
+// 读出文件中的列名
+vector<string> getColumnNames(ifstream& inputFile)
+{
+    string line;
+    getline(inputFile, line);
+    istringstream ss(line);
+    vector<string> column_names;
+    string column_name;
+    while (getline(ss, column_name, ','))
+    {
+        column_names.push_back(column_name);
+    }
+    return column_names;
+}
+
+// 读出指定列的所有值，以 vector<double> 的形式返回
+vector<double> getColumnValues(ifstream& inputFile, int column_index)
+{
+    vector<double> result;
+    string line;
+    int line_num = 0;
+    while (getline(inputFile, line))
+    {
+        istringstream ss(line);
+        ++line_num;
+        double value = 0;
+        for (int i = 0; i <= column_index; ++i)
+        {
+            string colval;
+            getline(ss, colval, ',');
+
+            if (i == column_index)
+            {
+                if (isNumberString(colval))
+                {
+                    value = stod(colval);
+                }
+                else
+                {
+                    // 报错处理
+                    cout << "第" << line_num << "行第" << (column_index + 1) << "列的值\"" << colval << "\"不是一个合法的数字，已被视为0处理" << endl;
+                }
+                break;
+            }
+        }
+        result.push_back(value);
+    }
+    return result;
+}
+
+// 计算指定列的和
+double getSum(const vector<double>& values)
+{
+    double sum = 0;
+    for (double value : values)
+    {
+        sum += value;
+    }
+    return sum;
+}
+
+// 计算指定列的均值
+double getMean(const vector<double>& values)
+{
+    double sum = getSum(values);
+    double mean = sum / values.size();
+    return mean;
+}
+
+// 计算指定列的方差
+double getVariance(const vector<double>& values, double mean)
+{
+    double diff_sum = 0;
+    for (double value : values)
+    {
+        double diff = value - mean;
+        diff_sum += diff * diff;
+    }
+    double variance = diff_sum / values.size();
+    return variance;
+}
+
+
+void test(char *argv[])
+{
+    ifstream input;
+    if (!openFile(argv[1], input))
+    {
+        return ;
+    }
+
+    // 读取列名
+    vector<string> column_names = getColumnNames(input);
+
+    // 指定要计算的列
+    int target_column_index = stoi(argv[2]) - 1; // 默认选择第2列
+    if (stoi(argv[2]) > column_names.size())
+    {
+        cout << "操作的列不存在" << endl;
+        return ;
+    }
+
+    // 读出指定列的所有值
+    vector<double> values = getColumnValues(input, target_column_index);
+
+    if (strcmp(argv[3], "sum") == 0)
+    {
+        double sum = getSum(values);
+        cout << argv[1] << "第" << target_column_index + 1 << "列的总和为： " << sum << endl;
+    }
+    else if (strcmp(argv[3], "mean") == 0)
+    {
+        double mean = getMean(values);
+        cout << argv[1] << "第" << target_column_index + 1 << "列的平均值为： " << mean << endl;
+    }
+    else if (strcmp(argv[3], "variance") == 0)
+    {
+        double mean = getMean(values);
+        double variance = getVariance(values, mean);
+        cout << argv[1] << "第" << target_column_index + 1 << "列的方差为： " << variance << endl;
+    }
+    else
+    {
+        cout << "操作不支持"<<endl;
+    }
+}
+
+int main(int argc, char* argv[])
+{
+    
+    if (argc != 4)
+    {
+        cout << "参数个数不正确" << endl;
+        system("pause");
+        return 1;
+    }
+    
+    if (argc==4)
+    {
+        test(argv);
+        return 0;
+    }
+
+    // 打开文件
+    //cout << argv[0];
+    ifstream input;
+    if (!openFile("data.csv", input))
+    {
+        return 1;
+    }
+
+    // 读取列名
+    vector<string> column_names = getColumnNames(input);
+
+    // 指定要计算的列
+    int target_column_index = 1; // 默认选择第2列
+    if (target_column_index > column_names.size())
+    {
+        cout << "操作的列不存在" << endl;
+        return 1;
+    }
+
+    // 读出指定列的所有值
+    vector<double> values = getColumnValues(input, target_column_index);
+
+    // 计算结果
+    double sum = getSum(values);
+    double mean = getMean(values);
+    double variance = getVariance(values, mean);
+
+    // 输出结果
+    cout << "总和: " << sum << endl;
+    cout << "均值: " << mean << endl;
+    cout << "方差: " << variance << endl;
+
+    // 关闭文件
+    input.close();
+    system("pause");
+    return 0;
+}
